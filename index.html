@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alternate String Merger</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>Alternate String Merger</h1>
+    <p class="sub">
+      Characters from both strings are taken turn by turn. If one string is
+      longer, its leftover characters are appended at the end.
+    </p>
+
+    <label for="str1">First string</label>
+    <input type="text" id="str1" placeholder="e.g. abc">
+
+    <label for="str2">Second string</label>
+    <input type="text" id="str2" placeholder="e.g. pqrst">
+
+    <div class="buttons">
+      <button class="primary" id="mergeBtn">Merge</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <label class="output-label" for="output">Result</label>
+    <div id="output" class="empty">Result will appear here</div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
