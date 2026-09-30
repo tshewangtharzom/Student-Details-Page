@@ -1,34 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Alternate String Merger</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Student Details</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#eef1f8; --panel:#ffffff; --ink:#16204a; --muted:#5b6488; --line:#c9d0e6;
+  --accent:#f2b02c; --accent-ink:#16204a; --danger:#b3261e;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1430; --panel:#19204a; --ink:#eef1ff; --muted:#a3acd6; --line:#33407a; --danger:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1430; --panel:#19204a; --ink:#eef1ff; --muted:#a3acd6; --line:#33407a; --danger:#ff8a80;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:960px;margin:0 auto;padding:32px 20px 56px}
+h1{font-size:clamp(2rem,6vw,3.2rem);font-weight:800;letter-spacing:-.02em;margin:0 0 6px;line-height:1.05}
+.sub{color:var(--muted);margin:0 0 28px;max-width:52ch}
+form{background:var(--panel);border:2px solid var(--ink);border-radius:6px;padding:20px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));box-shadow:6px 6px 0 var(--accent)}
+label{display:grid;gap:4px;font-weight:600;font-size:.9rem}
+input{font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+button{font:inherit;font-weight:600;padding:10px 20px;border:2px solid var(--ink);border-radius:4px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+#msg{color:var(--muted);font-size:.9rem}
+#msg.err{color:var(--danger)}
+h2{margin:36px 0 14px;font-size:1.3rem}
+#grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.block{background:var(--panel);border:2px solid var(--ink);border-radius:6px;overflow:hidden}
+.block .top{background:var(--ink);color:var(--bg);padding:10px 14px;display:flex;justify-content:space-between;font-weight:600}
+.block .top b{color:var(--accent)}
+.block dl{margin:0;padding:14px;display:grid;gap:8px}
+.block dt{font-size:.8rem;color:var(--muted)}
+.block dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.empty{border:2px dashed var(--line);border-radius:6px;padding:28px;color:var(--muted);text-align:center;grid-column:1/-1}
+</style>
 </head>
 <body>
-  <main class="card">
-    <h1>Alternate String Merger</h1>
-    <p class="sub">
-      Characters from both strings are taken turn by turn. If one string is
-      longer, its leftover characters are appended at the end.
-    </p>
+<main>
+  <h1>Student details</h1>
+  <p class="sub">Add up to 5 students. Each entry is saved in an array and shown below as a block.</p>
 
-    <label for="str1">First string</label>
-    <input type="text" id="str1" placeholder="e.g. abc">
-
-    <label for="str2">Second string</label>
-    <input type="text" id="str2" placeholder="e.g. pqrst">
-
-    <div class="buttons">
-      <button class="primary" id="mergeBtn">Merge</button>
-      <button id="clearBtn">Clear</button>
+  <form id="form" novalidate>
+    <label>Full name <input id="name" required autocomplete="off"></label>
+    <label>Roll number <input id="roll" required autocomplete="off"></label>
+    <label>Class <input id="cls" required autocomplete="off" placeholder="e.g. 10-B"></label>
+    <label>Email <input id="email" type="email" required autocomplete="off"></label>
+    <div class="row">
+      <button type="submit" id="add">Add student</button>
+      <button type="button" class="ghost" id="clear">Clear all</button>
+      <span id="msg" role="status">0 of 5 added</span>
     </div>
+  </form>
 
-    <label class="output-label" for="output">Result</label>
-    <div id="output" class="empty">Result will appear here</div>
-  </main>
+  <h2>Added students</h2>
+  <section id="grid" aria-live="polite"></section>
+</main>
 
-  <script src="script.js"></script>
+<script>
+const MAX = 5;
+const students = [];              // the array that stores every entry
+
+const form = document.getElementById('form');
+const grid = document.getElementById('grid');
+const msg = document.getElementById('msg');
+const addBtn = document.getElementById('add');
+const ids = ['name', 'roll', 'cls', 'email'];
+
+function say(text, isError) {
+  msg.textContent = text;
+  msg.className = isError ? 'err' : '';
+}
+
+function render() {
+  grid.innerHTML = '';
+  if (students.length === 0) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = 'No students yet. Fill in the form and choose Add student.';
+    grid.appendChild(e);
+  }
+  students.forEach((s, i) => {
+    const b = document.createElement('article');
+    b.className = 'block';
+    const top = document.createElement('div');
+    top.className = 'top';
+    const t1 = document.createElement('span');
+    t1.textContent = 'Student ' + (i + 1);
+    const t2 = document.createElement('b');
+    t2.textContent = s.cls;
+    top.append(t1, t2);
+    const dl = document.createElement('dl');
+    [['Name', s.name], ['Roll number', s.roll], ['Email', s.email]].forEach(([k, v]) => {
+      const wrap = document.createElement('div');
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      wrap.append(dt, dd);
+      dl.appendChild(wrap);
+    });
+    b.append(top, dl);
+    grid.appendChild(b);
+  });
+  addBtn.disabled = students.length >= MAX;
+  say(students.length + ' of ' + MAX + ' added' + (students.length >= MAX ? '. Limit reached.' : ''));
+}
+
+form.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  if (students.length >= MAX) { say('You can add only 5 students.', true); return; }
+  const v = {};
+  for (const id of ids) v[id] = document.getElementById(id).value.trim();
+  if (ids.some(id => !v[id])) { say('Fill in every field before adding.', true); return; }
+  if (!/^\S+@\S+\.\S+$/.test(v.email)) { say('Enter a valid email address.', true); return; }
+  students.push(v);                 // store in array
+  form.reset();
+  document.getElementById('name').focus();
+  render();
+});
+
+document.getElementById('clear').addEventListener('click', () => {
+  students.length = 0;
+  render();
+});
+
+render();
+</script>
 </body>
 </html>
